@@ -11,6 +11,7 @@ import torch
 from torch import nn
 import numpy as np
 import os
+from datetime import datetime
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -18,13 +19,14 @@ import matplotlib.pyplot as plt
 
 class Method_MLP(method, nn.Module):
     data = None
+    hidden_dim = 256
     # it defines the max rounds to train the model
     max_epoch = 20
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
     # location to save convergence plot
     training_curve_folder_path = '../../result/stage_2_result/plots/'
-    training_curve_file_name = 'train_loss_vs_epoch.png'
+    training_curve_file_name_prefix = 'train_loss_vs_epoch'
 
     # it defines the the MLP model architecture, e.g.,
     # how many layers, size of variables in each layer, activation function, etc.
@@ -34,12 +36,12 @@ class Method_MLP(method, nn.Module):
         nn.Module.__init__(self)
         # check here for nn.Linear doc: https://pytorch.org/docs/stable/generated/torch.nn.Linear.html
         # Stage 2: 784 input features, 256 hidden units
-        self.fc_layer_1 = nn.Linear(784, 256)
+        self.fc_layer_1 = nn.Linear(784, self.hidden_dim)
         # check here for nn.ReLU doc: https://pytorch.org/docs/stable/generated/torch.nn.ReLU.html
         self.activation_func_1 = nn.ReLU()
         # check here for nn.Linear doc: https://pytorch.org/docs/stable/generated/torch.nn.Linear.html
         # Last layer outputs logits (per-class scores). No Softmax: nn.CrossEntropyLoss expects logits.
-        self.fc_layer_2 = nn.Linear(256, 10)
+        self.fc_layer_2 = nn.Linear(self.hidden_dim, 10)
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
@@ -104,7 +106,12 @@ class Method_MLP(method, nn.Module):
         print('--start training...')
         loss_history = self.train(self.data['train']['X'], self.data['train']['y'])
         os.makedirs(self.training_curve_folder_path, exist_ok=True)
-        curve_path = os.path.join(self.training_curve_folder_path, self.training_curve_file_name)
+        run_tag = datetime.now().strftime('%Y%m%d_%H%M%S')
+        curve_file_name = (
+            f"{self.training_curve_file_name_prefix}_"
+            f"ep{self.max_epoch}_lr{self.learning_rate}_h{self.hidden_dim}_{run_tag}.png"
+        )
+        curve_path = os.path.join(self.training_curve_folder_path, curve_file_name)
         plt.figure()
         plt.plot(range(1, len(loss_history) + 1), loss_history)
         plt.xlabel('Epoch')
