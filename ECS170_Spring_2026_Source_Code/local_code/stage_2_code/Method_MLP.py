@@ -10,6 +10,8 @@ from local_code.stage_2_code.Evaluate_Accuracy import Evaluate_Accuracy
 import torch
 from torch import nn
 import numpy as np
+import os
+import matplotlib.pyplot as plt
 
 
 class Method_MLP(method, nn.Module):
@@ -18,6 +20,9 @@ class Method_MLP(method, nn.Module):
     max_epoch = 500
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
+    # location to save convergence plot
+    training_curve_folder_path = '../../result/stage_2_result/plots/'
+    training_curve_file_name = 'train_loss_vs_epoch.png'
 
     # it defines the the MLP model architecture, e.g.,
     # how many layers, size of variables in each layer, activation function, etc.
@@ -61,6 +66,7 @@ class Method_MLP(method, nn.Module):
         # it will be an iterative gradient updating process
         # we don't do mini-batch, we use the whole input as one batch
         # you can try to split X and y into smaller-sized batches by yourself
+        loss_history = []
         for epoch in range(self.max_epoch): # you can do an early stop if self.max_epoch is too much...
             # get the output, we need to covert X into torch.tensor so pytorch algorithm can operate on it
             y_pred = self.forward(torch.FloatTensor(np.asarray(X, dtype=np.float32)))
@@ -68,6 +74,7 @@ class Method_MLP(method, nn.Module):
             y_true = torch.LongTensor(np.array(y))
             # calculate the training loss
             train_loss = loss_function(y_pred, y_true)
+            loss_history.append(train_loss.item())
 
             # check here for the gradient init doc: https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.zero_grad.html
             optimizer.zero_grad()
@@ -81,6 +88,7 @@ class Method_MLP(method, nn.Module):
             if epoch%100 == 0:
                 accuracy_evaluator.data = {'true_y': y_true, 'pred_y': y_pred.max(1)[1]}
                 print('Epoch:', epoch, 'Accuracy:', accuracy_evaluator.evaluate(), 'Loss:', train_loss.item())
+        return loss_history
     
     def test(self, X):
         # do the testing, and result the result
@@ -92,8 +100,25 @@ class Method_MLP(method, nn.Module):
     def run(self):
         print('method running...')
         print('--start training...')
-        self.train(self.data['train']['X'], self.data['train']['y'])
+        loss_history = self.train(self.data['train']['X'], self.data['train']['y'])
+        os.makedirs(self.training_curve_folder_path, exist_ok=True)
+        curve_path = os.path.join(self.training_curve_folder_path, self.training_curve_file_name)
+        plt.figure()
+        plt.plot(range(1, len(loss_history) + 1), loss_history)
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.title('Training Convergence')
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.savefig(curve_path)
+        plt.close()
+        print('saved training convergence plot to:', curve_path)
         print('--start testing...')
         pred_y = self.test(self.data['test']['X'])
-        return {'pred_y': pred_y, 'true_y': self.data['test']['y']}
+        return {
+            'pred_y': pred_y,
+            'true_y': self.data['test']['y'],
+            'train_loss_history': loss_history,
+            'train_loss_curve_path': curve_path
+        }
             
