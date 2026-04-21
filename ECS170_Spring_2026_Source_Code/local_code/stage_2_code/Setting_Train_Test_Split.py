@@ -6,6 +6,8 @@ Concrete SettingModule class for a specific experimental SettingModule
 # License: TBD
 
 from local_code.base_class.setting import setting
+from local_code.stage_2_code.Evaluate_Multiclass_Metrics import Evaluate_Multiclass_Metrics
+
 
 class Setting_Train_Test_Split(setting):
     train_file_name = 'train.csv'
@@ -29,7 +31,12 @@ class Setting_Train_Test_Split(setting):
         self.result.save()
             
         self.evaluate.data = learned_result
-        
-        return self.evaluate.evaluate(), None
+        acc = self.evaluate.evaluate()
+
+        multiclass = Evaluate_Multiclass_Metrics('multiclass P/R/F1', '')
+        multiclass.data = learned_result
+        multiclass.evaluate()
+
+        return acc, None
 
         
