@@ -25,7 +25,7 @@ class Method_MLP(method, nn.Module):
     # it defines the max rounds to train the model
     max_epoch = 500
     # it defines the learning rate for gradient descent based optimizer for model learning
-    learning_rate = 1e-3
+    learning_rate = 5e-4
     # location to save convergence plot
     training_curve_folder_path = '../../result/stage_2_result/plots/'
     training_curve_file_name_prefix = 'train_loss_vs_epoch'
