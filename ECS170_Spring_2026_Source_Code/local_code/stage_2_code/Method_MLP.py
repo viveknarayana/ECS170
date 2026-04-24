@@ -20,8 +20,10 @@ import matplotlib.pyplot as plt
 class Method_MLP(method, nn.Module):
     data = None
     hidden_dim = 256
+    hidden_dim_2 = 128
+    hidden_dim_3 = 64
     # it defines the max rounds to train the model
-    max_epoch = 20
+    max_epoch = 500
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
     # location to save convergence plot
@@ -35,25 +37,37 @@ class Method_MLP(method, nn.Module):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
         # check here for nn.Linear doc: https://pytorch.org/docs/stable/generated/torch.nn.Linear.html
-        # Stage 2: 784 input features, 256 hidden units
+        # Stage 2: 784 input features -> first hidden width self.hidden_dim
         self.fc_layer_1 = nn.Linear(784, self.hidden_dim)
         # check here for nn.ReLU doc: https://pytorch.org/docs/stable/generated/torch.nn.ReLU.html
         self.activation_func_1 = nn.ReLU()
         # check here for nn.Linear doc: https://pytorch.org/docs/stable/generated/torch.nn.Linear.html
+        self.fc_layer_2 = nn.Linear(self.hidden_dim, self.hidden_dim_2)
+        # check here for nn.ReLU doc: https://pytorch.org/docs/stable/generated/torch.nn.ReLU.html
+        self.activation_func_2 = nn.ReLU()
+        # check here for nn.Linear doc: https://pytorch.org/docs/stable/generated/torch.nn.Linear.html
+        self.fc_layer_3 = nn.Linear(self.hidden_dim_2, self.hidden_dim_3)
+        # check here for nn.ReLU doc: https://pytorch.org/docs/stable/generated/torch.nn.ReLU.html
+        self.activation_func_3 = nn.ReLU()
+        # check here for nn.Linear doc: https://pytorch.org/docs/stable/generated/torch.nn.Linear.html
         # Last layer outputs logits (per-class scores). No Softmax: nn.CrossEntropyLoss expects logits.
-        self.fc_layer_2 = nn.Linear(self.hidden_dim, 10)
+        self.fc_layer_4 = nn.Linear(self.hidden_dim_3, 10)
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
 
     def forward(self, x):
         '''Forward propagation'''
-        # hidden layer embeddings
+        # hidden layer embeddings (first fully connected block)
         h = self.activation_func_1(self.fc_layer_1(x))
-        # output layer result (logits); self.fc_layer_2(h) will be an N x 10 tensor
+        # second hidden block (still fully connected Linear + ReLU)
+        h = self.activation_func_2(self.fc_layer_2(h))
+        # third hidden block (Linear + ReLU)
+        h = self.activation_func_3(self.fc_layer_3(h))
+        # output layer result (logits); self.fc_layer_4(h) will be an N x 10 tensor
         # n (denotes the input instance number): 0th dimension; 10 (denotes the class number): 1st dimension
         # With softmax removed: we pass raw scores to CrossEntropyLoss (see PyTorch docs)
-        logits = self.fc_layer_2(h)
+        logits = self.fc_layer_4(h)
         return logits
 
     # backward error propagation will be implemented by pytorch automatically
@@ -89,7 +103,7 @@ class Method_MLP(method, nn.Module):
             # update the variables according to the optimizer and the gradients calculated by the above loss.backward function
             optimizer.step()
 
-            if epoch%100 == 0:
+            if epoch % 10 == 0:
                 accuracy_evaluator.data = {'true_y': y_true, 'pred_y': y_pred.max(1)[1]}
                 print('Epoch:', epoch, 'Accuracy:', accuracy_evaluator.evaluate(), 'Loss:', train_loss.item())
         return loss_history
@@ -109,7 +123,7 @@ class Method_MLP(method, nn.Module):
         run_tag = datetime.now().strftime('%Y%m%d_%H%M%S')
         curve_file_name = (
             f"{self.training_curve_file_name_prefix}_"
-            f"ep{self.max_epoch}_lr{self.learning_rate}_h{self.hidden_dim}_{run_tag}.png"
+            f"ep{self.max_epoch}_lr{self.learning_rate}_h{self.hidden_dim}_{self.hidden_dim_2}_{self.hidden_dim_3}_{run_tag}.png"
         )
         curve_path = os.path.join(self.training_curve_folder_path, curve_file_name)
         plt.figure()
