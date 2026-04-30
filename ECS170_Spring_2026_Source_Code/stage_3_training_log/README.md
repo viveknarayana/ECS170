@@ -29,6 +29,7 @@ Observed training progress snapshot:
 
 Saved learning curve:
 - `../../result/stage_3_result/plots/train_loss_vs_epoch_ep10_lr0.001_20260430_140630.png`
+- `../result/stage_3_result/plots/train_loss_vs_epoch_ep10_lr0.001_20260430_140630.png` (path relative to this log folder)
 
 Evaluation results (test set):
 - Accuracy: `0.9897`
