@@ -15,11 +15,24 @@ __pycache__/
 # OS
 .DS_Store
 
-# ECS170: pickled / binary prediction outputs from scripts (regenerate by running scripts)
-ECS170_Spring_2026_Source_Code/result/stage_*_result/*
+# Local assignment PDF
+ECS170HW1.pdf
+
+# ECS170: generated outputs from scripts (regenerate by running scripts)
+ECS170_Spring_2026_Source_Code/result/stage_*_result/**
 
 # Local planning note
 ECS170_Spring_2026_Source_Code/README_STAGE_2_PLAN.md
 
 # Stage 2 datasets — too large for GitHub (train.csv > 100MB). Keep locally / from instructor.
 ECS170_Spring_2026_Source_Code/data/stage_2_data/*.csv
+
+# Stage 3 datasets (instructor-provided local binaries/doc exports)
+ECS170_Spring_2026_Source_Code/data/stage_3_data/
+ECS170_Spring_2026_Source_Code/data/stage_3_data/MNIST
+ECS170_Spring_2026_Source_Code/data/stage_3_data/ORL
+ECS170_Spring_2026_Source_Code/data/stage_3_data/CIFAR
+ECS170_Spring_2026_Source_Code/data/stage_3_data/ReadMe.pages
+
+# Stage 3 notes/logs (temporary local tracking)
+ECS170_Spring_2026_Source_Code/README_STAGE_3.md
