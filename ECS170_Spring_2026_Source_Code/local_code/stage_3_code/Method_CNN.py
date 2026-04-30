@@ -19,7 +19,7 @@ class Method_CNN(method, nn.Module):
     data = None
     max_epoch = 10
     learning_rate = 1e-3
-    batch_size = 128
+    batch_size = 64
     training_curve_folder_path = '../../result/stage_3_result/plots/'
     training_curve_file_name_prefix = 'train_loss_vs_epoch'
 
@@ -46,10 +46,10 @@ class Method_CNN(method, nn.Module):
     def _build_network(self, input_shape, num_classes):
         c, h, w = input_shape
         self.network = nn.Sequential(
-            nn.Conv2d(c, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(c, 32, kernel_size=5, stride=1, padding=2),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Flatten(),
