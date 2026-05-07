@@ -8,6 +8,8 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from local_code.stage_3_code.Dataset_Loader import Dataset_Loader
 from local_code.stage_3_code.Method_CNN import Method_CNN
+from local_code.stage_3_code.Method_CNN_ORL import Method_CNN_ORL
+from local_code.stage_3_code.Method_CNN_CIFAR import Method_CNN_CIFAR
 from local_code.stage_3_code.Result_Saver import Result_Saver
 from local_code.stage_3_code.Setting_Train_Test_Split import Setting_Train_Test_Split
 from local_code.stage_3_code.Evaluate_Accuracy import Evaluate_Accuracy
@@ -38,7 +40,12 @@ def run_single_dataset(dataset_name):
     data_obj.dataset_source_folder_path = '../../data/stage_3_data/'
     data_obj.dataset_source_file_name = dataset_name
 
-    method_obj = Method_CNN('convolutional neural network', '')
+    if dataset_name == 'ORL':
+        method_obj = Method_CNN_ORL('CNN ORL', '')
+    elif dataset_name == 'CIFAR':
+        method_obj = Method_CNN_CIFAR('CNN CIFAR', '')
+    else:
+        method_obj = Method_CNN('CNN MNIST', '')
 
     result_obj = Result_Saver('saver', '')
     result_obj.result_destination_folder_path = f'../../result/stage_3_result/CNN_{dataset_name}/'
