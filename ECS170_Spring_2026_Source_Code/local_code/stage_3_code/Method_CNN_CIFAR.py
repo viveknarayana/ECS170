@@ -17,16 +17,21 @@ import matplotlib.pyplot as plt
 
 class Method_CNN_CIFAR(method, nn.Module):
     data = None
-    max_epoch = 10
     learning_rate = 1e-3
     batch_size = 128
     training_curve_folder_path = '../../result/stage_3_result/plots/'
-    training_curve_file_name_prefix = 'train_loss_vs_epoch_CIFAR'
 
-    def __init__(self, mName, mDescription):
+    VARIANTS = ('simple', 'medium', 'deep')
+
+    def __init__(self, mName, mDescription, variant='deep'):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
+        if variant not in self.VARIANTS:
+            raise ValueError(f'Unknown CIFAR variant: {variant}. Choose from {self.VARIANTS}')
+        self.variant = variant
         self.network = None
+        self.max_epoch = 10
+        self.training_curve_file_name_prefix = f'train_loss_vs_epoch_CIFAR_{variant}'
 
     def _prepare_input(self, X):
         arr = np.asarray(X, dtype=np.float32)
@@ -42,36 +47,64 @@ class Method_CNN_CIFAR(method, nn.Module):
 
     def _build_network(self, input_shape, num_classes):
         c, h, w = input_shape
-        # 3 conv blocks with batchnorm; 32x32 -> 16x16 -> 8x8 -> 4x4
-        self.network = nn.Sequential(
-            nn.Conv2d(c, 32, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+        if self.variant == 'simple':
+            # 2 conv blocks, no BN, no dropout 32x32 -> 16x16 -> 8x8
+            self.network = nn.Sequential(
+                nn.Conv2d(c, 32, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
+                nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
+                nn.Flatten(),
+                nn.Linear(64 * (h // 4) * (w // 4), num_classes)
+            )
+        elif self.variant == 'medium':
+            # 3 conv blocks, no BN, no dropout 32x32 -> 16x16 -> 8x8 -> 4x4
+            self.network = nn.Sequential(
+                nn.Conv2d(c, 32, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
+                nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
+                nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
+                nn.Flatten(),
+                nn.Linear(128 * (h // 8) * (w // 8), num_classes)
+            )
+        else:
+            # deep - stacked 3x3 convs, BatchNorm, FC head with dropout.
+            self.network = nn.Sequential(
+                nn.Conv2d(c, 32, kernel_size=3, stride=1, padding=1),
+                nn.BatchNorm2d(32),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+                nn.BatchNorm2d(32),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
 
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+                nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+                nn.BatchNorm2d(64),
+                nn.ReLU(),
+                nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+                nn.BatchNorm2d(64),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
 
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+                nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+                nn.BatchNorm2d(128),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
 
-            nn.Flatten(),
-            nn.Dropout(0.3),
-            nn.Linear(128 * (h // 8) * (w // 8), 256),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(256, num_classes)
-        )
+                nn.Flatten(),
+                nn.Dropout(0.3),
+                nn.Linear(128 * (h // 8) * (w // 8), 256),
+                nn.ReLU(),
+                nn.Dropout(0.3),
+                nn.Linear(256, num_classes)
+            )
 
     def forward(self, x):
         return self.network(x)
@@ -139,7 +172,7 @@ class Method_CNN_CIFAR(method, nn.Module):
         plt.plot(range(1, len(loss_history) + 1), loss_history)
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
-        plt.title('Training Convergence (CIFAR)')
+        plt.title(f'Training Convergence (CIFAR — {self.variant})')
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(curve_path)

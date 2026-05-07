@@ -101,3 +101,50 @@ Evaluation results (test set):
 
 Quick inference sanity check:
 - `test_index=0, pred=7, true=7`
+
+## ORL - Training Run 1 (variant: simple)
+
+Run context:
+- Dataset: `ORL`
+- Variant: `simple`
+- Epochs: `10`
+- Learning rate: `0.001`
+- Batch size: `32`
+- Device: CPU
+
+Model architecture used in this run:
+1. `Conv2d(in_channels, 16, kernel_size=5, padding=2)`
+2. `ReLU`
+3. `MaxPool2d(2)`
+4. `Flatten`
+5. `Linear(flat_features, num_classes)`
+
+Observed training progress:
+- Epoch 0: train accuracy `0.6666666666666666`, loss `3.621510214275784`
+- Epoch 1: train accuracy `0.9166666666666666`, loss `1.254526150226593`
+- Epoch 2: train accuracy `0.9972222222222222`, loss `0.36153461866908604`
+- Epoch 3: train accuracy `1.0`, loss `0.08514447758595149`
+- Epoch 4: train accuracy `1.0`, loss `0.0260486568013827`
+- Epoch 5: train accuracy `1.0`, loss `0.012939365456501643`
+- Epoch 6: train accuracy `1.0`, loss `0.007611856526798673`
+- Epoch 7: train accuracy `1.0`, loss `0.005424019176926878`
+- Epoch 8: train accuracy `1.0`, loss `0.00433216556492779`
+- Epoch 9: train accuracy `1.0`, loss `0.003537168519364463`
+
+Saved learning curve:
+- `../../result/stage_3_result/plots/train_loss_vs_epoch_ORL_simple_ep10_lr0.001_20260507_033334.png`
+
+Evaluation results (test set):
+- Accuracy: `0.95`
+- F1 macro: `0.9333333333333332`
+- F1 micro: `0.95`
+- F1 weighted: `0.9333333333333332`
+- Precision macro: `0.925`
+- Precision micro: `0.95`
+- Precision weighted: `0.925`
+- Recall macro: `0.95`
+- Recall micro: `0.95`
+- Recall weighted: `0.95`
+
+Quick inference sanity check:
+- `test_index=0, pred=1, true=1`

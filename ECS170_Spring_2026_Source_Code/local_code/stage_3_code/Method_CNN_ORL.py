@@ -17,16 +17,22 @@ import matplotlib.pyplot as plt
 
 class Method_CNN_ORL(method, nn.Module):
     data = None
-    max_epoch = 30
     learning_rate = 1e-3
     batch_size = 32
     training_curve_folder_path = '../../result/stage_3_result/plots/'
-    training_curve_file_name_prefix = 'train_loss_vs_epoch_ORL'
 
-    def __init__(self, mName, mDescription):
+    # Per-variant hyperparameters; max_epoch is set in __init__.
+    VARIANTS = ('simple', 'deep')
+
+    def __init__(self, mName, mDescription, variant='deep'):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
+        if variant not in self.VARIANTS:
+            raise ValueError(f'Unknown ORL variant: {variant}. Choose from {self.VARIANTS}')
+        self.variant = variant
         self.network = None
+        self.max_epoch = 10 if variant == 'simple' else 30
+        self.training_curve_file_name_prefix = f'train_loss_vs_epoch_ORL_{variant}'
 
     def _prepare_input(self, X):
         arr = np.asarray(X, dtype=np.float32)
@@ -42,17 +48,28 @@ class Method_CNN_ORL(method, nn.Module):
 
     def _build_network(self, input_shape, num_classes):
         c, h, w = input_shape
-        self.network = nn.Sequential(
-            nn.Conv2d(c, 16, kernel_size=5, stride=1, padding=2),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(16, 32, kernel_size=5, stride=1, padding=2),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Flatten(),
-            nn.Dropout(0.3),
-            nn.Linear(32 * (h // 4) * (w // 4), num_classes)
-        )
+        if self.variant == 'simple':
+            # 1 conv block + linear head, no dropout
+            self.network = nn.Sequential(
+                nn.Conv2d(c, 16, kernel_size=5, stride=1, padding=2),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
+                nn.Flatten(),
+                nn.Linear(16 * (h // 2) * (w // 2), num_classes)
+            )
+        else:
+            #  2 conv blocks with dropout in classifier
+            self.network = nn.Sequential(
+                nn.Conv2d(c, 16, kernel_size=5, stride=1, padding=2),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
+                nn.Conv2d(16, 32, kernel_size=5, stride=1, padding=2),
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),
+                nn.Flatten(),
+                nn.Dropout(0.3),
+                nn.Linear(32 * (h // 4) * (w // 4), num_classes)
+            )
 
     def forward(self, x):
         return self.network(x)
@@ -116,7 +133,7 @@ class Method_CNN_ORL(method, nn.Module):
         plt.plot(range(1, len(loss_history) + 1), loss_history)
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
-        plt.title('Training Convergence (ORL)')
+        plt.title(f'Training Convergence (ORL — {self.variant})')
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(curve_path)

@@ -23,13 +23,16 @@ import argparse
 Stage 3 CNN runner.
 Usage examples:
   python script_cnn.py --dataset MNIST
-  python script_cnn.py --dataset ORL
-  python script_cnn.py --dataset CIFAR
+  python script_cnn.py --dataset ORL --variant simple
+  python script_cnn.py --dataset ORL --variant deep
+  python script_cnn.py --dataset CIFAR --variant simple
+  python script_cnn.py --dataset CIFAR --variant medium
+  python script_cnn.py --dataset CIFAR --variant deep
   python script_cnn.py --dataset ALL
 """
 
 
-def run_single_dataset(dataset_name):
+def run_single_dataset(dataset_name, variant='deep'):
     # ---- parameter section -------------------------------
     np.random.seed(2)
     torch.manual_seed(2)
@@ -41,15 +44,18 @@ def run_single_dataset(dataset_name):
     data_obj.dataset_source_file_name = dataset_name
 
     if dataset_name == 'ORL':
-        method_obj = Method_CNN_ORL('CNN ORL', '')
+        method_obj = Method_CNN_ORL('CNN ORL', '', variant=variant)
+        run_tag = f'{dataset_name}_{variant}'
     elif dataset_name == 'CIFAR':
-        method_obj = Method_CNN_CIFAR('CNN CIFAR', '')
+        method_obj = Method_CNN_CIFAR('CNN CIFAR', '', variant=variant)
+        run_tag = f'{dataset_name}_{variant}'
     else:
         method_obj = Method_CNN('CNN MNIST', '')
+        run_tag = dataset_name
 
     result_obj = Result_Saver('saver', '')
-    result_obj.result_destination_folder_path = f'../../result/stage_3_result/CNN_{dataset_name}/'
-    result_obj.result_destination_file_name = f'prediction_result_{dataset_name}'
+    result_obj.result_destination_folder_path = f'../../result/stage_3_result/CNN_{run_tag}/'
+    result_obj.result_destination_file_name = f'prediction_result_{run_tag}'
     os.makedirs(result_obj.result_destination_folder_path, exist_ok=True)
 
     setting_obj = Setting_Train_Test_Split('train test split', '')
@@ -90,9 +96,20 @@ if __name__ == '__main__':
         choices=['MNIST', 'ORL', 'CIFAR', 'ALL'],
         help='Dataset to run: MNIST, ORL, CIFAR, or ALL'
     )
+    parser.add_argument(
+        '--variant',
+        type=str,
+        default='deep',
+        choices=['simple', 'medium', 'deep'],
+        help='Architecture variant (ORL: simple|deep, CIFAR: simple|medium|deep). Ignored for MNIST.'
+    )
     args = parser.parse_args()
 
     selected = args.dataset.upper()
     datasets = ['MNIST', 'ORL', 'CIFAR'] if selected == 'ALL' else [selected]
     for ds in datasets:
-        run_single_dataset(ds)
+        # ORL has no 'medium' variant; coerce to 'deep' if user selected medium for ORL.
+        v = args.variant
+        if ds == 'ORL' and v == 'medium':
+            v = 'deep'
+        run_single_dataset(ds, variant=v)
