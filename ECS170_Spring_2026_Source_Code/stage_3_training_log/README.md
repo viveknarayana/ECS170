@@ -148,3 +148,64 @@ Evaluation results (test set):
 
 Quick inference sanity check:
 - `test_index=0, pred=1, true=1`
+
+## ORL - Training Run 2 (variant: deep)
+
+Run context:
+- Dataset: `ORL`
+- Variant: `deep`
+- Epochs: `30`
+- Learning rate: `0.001`
+- Batch size: `32`
+- Device: CPU
+
+Exact model changes from Run 1 (simple):
+- added a second conv block (`16 -> 32` channels)
+- added `Dropout(0.3)` before the classifier
+- epochs `10 -> 30`
+- unchanged: kernel size (5x5), padding (2), stride (1), pooling, optimizer (Adam), batch size (32), learning rate (1e-3)
+
+Model architecture used in this run:
+1. `Conv2d(in_channels, 16, kernel_size=5, padding=2)`
+2. `ReLU`
+3. `MaxPool2d(2)`
+4. `Conv2d(16, 32, kernel_size=5, padding=2)`
+5. `ReLU`
+6. `MaxPool2d(2)`
+7. `Flatten`
+8. `Dropout(0.3)`
+9. `Linear(flat_features, num_classes)`
+
+Observed training progress (selected epochs):
+- Epoch 0: train accuracy `0.3388888888888889`, loss `3.645611317952474`
+- Epoch 1: train accuracy `0.8222222222222222`, loss `2.345067420270708`
+- Epoch 2: train accuracy `0.9694444444444444`, loss `0.5224661058849759`
+- Epoch 3: train accuracy `0.9972222222222222`, loss `0.11510597036944495`
+- Epoch 6: train accuracy `1.0`, loss `0.017561120837409464`
+- Epoch 9: train accuracy `1.0`, loss `0.007076167842994133`
+- Epoch 14: train accuracy `1.0`, loss `0.00029459446409924164`
+- Epoch 19: train accuracy `1.0`, loss `0.00019447675311110087`
+- Epoch 29: train accuracy `1.0`, loss `0.00011925064047520411`
+
+Saved learning curve:
+- `../../result/stage_3_result/plots/train_loss_vs_epoch_ORL_deep_ep30_lr0.001_20260507_033612.png`
+
+Evaluation results (test set):
+- Accuracy: `0.975`
+- F1 macro: `0.9666666666666666`
+- F1 micro: `0.975`
+- F1 weighted: `0.9666666666666666`
+- Precision macro: `0.9625`
+- Precision micro: `0.975`
+- Precision weighted: `0.9625`
+- Recall macro: `0.975`
+- Recall micro: `0.975`
+- Recall weighted: `0.975`
+
+Quick inference sanity check:
+- `test_index=0, pred=1, true=1`
+
+Comparison vs simple variant:
+- simple: 95.0% test acc (1 conv, 10 epochs)
+- deep:   97.5% test acc (2 conv + dropout, 30 epochs)
+- gain from added depth/regularization/epochs: +2.5 percentage points (1 fewer misclassification on the 40-image test set).
