@@ -209,3 +209,57 @@ Comparison vs simple variant:
 - simple: 95.0% test acc (1 conv, 10 epochs)
 - deep:   97.5% test acc (2 conv + dropout, 30 epochs)
 - gain from added depth/regularization/epochs: +2.5 percentage points (1 fewer misclassification on the 40-image test set).
+
+## CIFAR - Training Run 1 (variant: simple)
+
+Run context:
+- Dataset: `CIFAR-10`
+- Variant: `simple`
+- Epochs: `10`
+- Learning rate: `0.001`
+- Batch size: `128`
+- Device: CPU
+
+Model architecture used in this run:
+1. `Conv2d(in_channels, 32, kernel_size=3, padding=1)`
+2. `ReLU`
+3. `MaxPool2d(2)`
+4. `Conv2d(32, 64, kernel_size=3, padding=1)`
+5. `ReLU`
+6. `MaxPool2d(2)`
+7. `Flatten`
+8. `Linear(flat_features, num_classes)`
+
+Observed training progress:
+- Epoch 0: train accuracy `0.39484`, loss `1.7220909796905517`
+- Epoch 1: train accuracy `0.53404`, loss `1.3580733214569092`
+- Epoch 2: train accuracy `0.57986`, loss `1.225619200553894`
+- Epoch 3: train accuracy `0.60646`, loss `1.1518175605010987`
+- Epoch 4: train accuracy `0.62428`, loss `1.0991495751571656`
+- Epoch 5: train accuracy `0.63858`, loss `1.0621258233833313`
+- Epoch 6: train accuracy `0.65178`, loss `1.0261795722198486`
+- Epoch 7: train accuracy `0.6647`, loss `0.9881911171340942`
+- Epoch 8: train accuracy `0.67308`, loss `0.9621131206893921`
+- Epoch 9: train accuracy `0.6817`, loss `0.9402069597244262`
+
+Saved learning curve:
+- `../../result/stage_3_result/plots/train_loss_vs_epoch_CIFAR_simple_ep10_lr0.001_20260507_034324.png`
+
+Evaluation results (test set):
+- Accuracy: `0.6485`
+- F1 macro: `0.6480175296704095`
+- F1 micro: `0.6485`
+- F1 weighted: `0.6480175296704096`
+- Precision macro: `0.6565728965908215`
+- Precision micro: `0.6485`
+- Precision weighted: `0.6565728965908215`
+- Recall macro: `0.6485000000000001`
+- Recall micro: `0.6485`
+- Recall weighted: `0.6485`
+
+Quick inference sanity check:
+- `test_index=0, pred=8, true=3` (wrong — model predicted class 8, actual was 3)
+
+Notes:
+- Below the 70% target as expected for a shallow 2-conv baseline. Establishes the floor for the ablation series; expect medium/deep variants to clear 70%.
+- Train-test gap is small (train ~68%, test 65%), suggesting the model is capacity-limited rather than overfitting. More layers / BatchNorm / dropout in the deeper variants should help.
