@@ -263,3 +263,68 @@ Quick inference sanity check:
 Notes:
 - Below the 70% target as expected for a shallow 2-conv baseline. Establishes the floor for the ablation series; expect medium/deep variants to clear 70%.
 - Train-test gap is small (train ~68%, test 65%), suggesting the model is capacity-limited rather than overfitting. More layers / BatchNorm / dropout in the deeper variants should help.
+
+## CIFAR - Training Run 2 (variant: medium)
+
+Run context:
+- Dataset: `CIFAR-10`
+- Variant: `medium`
+- Epochs: `10`
+- Learning rate: `0.001`
+- Batch size: `128`
+- Device: CPU
+
+Exact model changes from Run 1 (simple):
+- added a third conv block (`64 -> 128` channels) with another `MaxPool2d(2)`
+- spatial reduction: `32x32 -> 16x16 -> 8x8 -> 4x4` (was `32 -> 16 -> 8`)
+- unchanged: kernel size (3x3), padding (1), stride (1), no BatchNorm, no Dropout, optimizer (Adam), batch size (128), learning rate (1e-3), epochs (10)
+
+Model architecture used in this run:
+1. `Conv2d(in_channels, 32, kernel_size=3, padding=1)`
+2. `ReLU`
+3. `MaxPool2d(2)`
+4. `Conv2d(32, 64, kernel_size=3, padding=1)`
+5. `ReLU`
+6. `MaxPool2d(2)`
+7. `Conv2d(64, 128, kernel_size=3, padding=1)`
+8. `ReLU`
+9. `MaxPool2d(2)`
+10. `Flatten`
+11. `Linear(flat_features, num_classes)`
+
+Observed training progress:
+- Epoch 0: train accuracy `0.39648`, loss `1.6914559703063965`
+- Epoch 1: train accuracy `0.55232`, loss `1.293464029121399`
+- Epoch 2: train accuracy `0.60982`, loss `1.1353431934738158`
+- Epoch 3: train accuracy `0.64554`, loss `1.0341495520401`
+- Epoch 4: train accuracy `0.6717`, loss `0.9619465403556824`
+- Epoch 5: train accuracy `0.6951`, loss `0.8955190141677857`
+- Epoch 6: train accuracy `0.71452`, loss `0.8427418274307251`
+- Epoch 7: train accuracy `0.7291`, loss `0.7981300364494324`
+- Epoch 8: train accuracy `0.74048`, loss `0.7599060789108276`
+- Epoch 9: train accuracy `0.7563`, loss `0.7181942917823791`
+
+Saved learning curve:
+- `../../result/stage_3_result/plots/train_loss_vs_epoch_CIFAR_medium_ep10_lr0.001_20260507_035127.png`
+
+Evaluation results (test set):
+- Accuracy: `0.6842`
+- F1 macro: `0.6841086749428625`
+- F1 micro: `0.6842`
+- F1 weighted: `0.6841086749428626`
+- Precision macro: `0.693344328475281`
+- Precision micro: `0.6842`
+- Precision weighted: `0.693344328475281`
+- Recall macro: `0.6842`
+- Recall micro: `0.6842`
+- Recall weighted: `0.6842`
+
+Quick inference sanity check:
+- `test_index=0, pred=3, true=3` (correct — same image that simple variant got wrong)
+
+Comparison vs simple variant:
+- simple: 64.85% test acc (2 conv blocks)
+- medium: 68.42% test acc (3 conv blocks)
+- gain from added depth: +3.57 percentage points
+- still below the 70% target — the deep variant adds BatchNorm + Dropout + a wider FC head to push past 70%.
+- training loss still decreasing at epoch 9 (train acc 75.6% vs test 68.4%), suggesting the model would benefit from more epochs or stronger regularization rather than just more capacity.
