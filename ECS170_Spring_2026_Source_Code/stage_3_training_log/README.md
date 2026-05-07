@@ -328,3 +328,72 @@ Comparison vs simple variant:
 - gain from added depth: +3.57 percentage points
 - still below the 70% target — the deep variant adds BatchNorm + Dropout + a wider FC head to push past 70%.
 - training loss still decreasing at epoch 9 (train acc 75.6% vs test 68.4%), suggesting the model would benefit from more epochs or stronger regularization rather than just more capacity.
+
+## CIFAR - Training Run 3 (variant: deep)
+
+Run context:
+- Dataset: `CIFAR-10`
+- Variant: `deep`
+- Epochs: `10`
+- Learning rate: `0.001`
+- Batch size: `128`
+- Device: CPU
+
+Exact model changes from Run 2 (medium):
+- doubled-up 3x3 convs: each of the first two blocks now has two stacked conv layers instead of one
+- added `BatchNorm2d` after every conv
+- added a fully connected hidden layer `Linear(2048 -> 256) + ReLU` between flatten and the classifier
+- added `Dropout(0.3)` before the FC hidden layer and before the output layer
+- spatial layout unchanged (`32x32 -> 16x16 -> 8x8 -> 4x4`); other hyperparameters unchanged
+
+Model architecture used in this run:
+1. `Conv2d(in_channels, 32, kernel_size=3, padding=1) + BN + ReLU`
+2. `Conv2d(32, 32, kernel_size=3, padding=1) + BN + ReLU`
+3. `MaxPool2d(2)`
+4. `Conv2d(32, 64, kernel_size=3, padding=1) + BN + ReLU`
+5. `Conv2d(64, 64, kernel_size=3, padding=1) + BN + ReLU`
+6. `MaxPool2d(2)`
+7. `Conv2d(64, 128, kernel_size=3, padding=1) + BN + ReLU`
+8. `MaxPool2d(2)`
+9. `Flatten`
+10. `Dropout(0.3)`
+11. `Linear(2048 -> 256) + ReLU`
+12. `Dropout(0.3)`
+13. `Linear(256 -> num_classes)`
+
+Observed training progress:
+- Epoch 0: train accuracy `0.49888`, loss `1.3983327325439454`
+- Epoch 1: train accuracy `0.66494`, loss `0.9622204212760925`
+- Epoch 2: train accuracy `0.71432`, loss `0.8248789291572571`
+- Epoch 3: train accuracy `0.74338`, loss `0.7401256809806823`
+- Epoch 4: train accuracy `0.76598`, loss `0.6768600988769531`
+- Epoch 5: train accuracy `0.78378`, loss `0.6260377000045776`
+- Epoch 6: train accuracy `0.79736`, loss `0.587485109539032`
+- Epoch 7: train accuracy `0.81332`, loss `0.5454869079208374`
+- Epoch 8: train accuracy `0.8249`, loss `0.5084948580932617`
+- Epoch 9: train accuracy `0.8314`, loss `0.4821077932739258`
+
+Saved learning curve:
+- `../../result/stage_3_result/plots/train_loss_vs_epoch_CIFAR_deep_ep10_lr0.001_20260507_041103.png`
+
+Evaluation results (test set):
+- Accuracy: `0.7663`
+- F1 macro: `0.7641409999681933`
+- F1 micro: `0.7663`
+- F1 weighted: `0.7641409999681932`
+- Precision macro: `0.7830173124139689`
+- Precision micro: `0.7663`
+- Precision weighted: `0.7830173124139689`
+- Recall macro: `0.7663`
+- Recall micro: `0.7663`
+- Recall weighted: `0.7663`
+
+Quick inference sanity check:
+- `test_index=0, pred=3, true=3` (correct)
+
+Comparison across all CIFAR variants:
+- simple (2 conv, no BN, no dropout):                64.85% test acc
+- medium (3 conv, no BN, no dropout):                68.42% test acc
+- deep   (5 conv + BN + dropout + FC hidden layer):  76.63% test acc
+
+Cumulative gain from simple to deep: +11.78 percentage points; clears the 70% target with margin to spare. Train accuracy still climbing at epoch 9 (83.14%), so additional epochs would likely improve test accuracy further, but training time on CPU was the bottleneck.
