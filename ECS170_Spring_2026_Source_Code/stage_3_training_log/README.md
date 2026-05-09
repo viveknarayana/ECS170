@@ -2,6 +2,24 @@
 
 This folder stores informal run logs for Stage 3 experiments.
 
+## Summary table (all training runs)
+
+Precision, Recall, and F1 are **macro** averages on the test split (micro and weighted values appear in each run section below). **Bold** marks what changed versus the previous run for that dataset (Run 1 per dataset is the baseline).
+
+| Run | Dataset | Layers | LR | Epochs | Accuracy | Precision | Recall | F1 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | MNIST | 2× Conv3×3 (32, 64) + ReLU + pool each; Linear | 0.001 | 10 | 0.9897 | 0.9896 | 0.9896 | 0.9896 |
+| 2 | MNIST | 2× **Conv5×5** (32, 64) + ReLU + pool each; Linear; **batch 64** (Run 1 used 128) | 0.001 | 10 | 0.9928 | 0.9927 | 0.9927 | 0.9927 |
+| 3 | ORL (simple) | Conv5×5 (16) + ReLU + pool; Linear | 0.001 | 10 | 0.9500 | 0.9250 | 0.9500 | 0.9333 |
+| 4 | ORL (deep) | **2×** Conv5×5 **(16, 32)** + ReLU + pool each; **Dropout 0.3**; Linear | 0.001 | **30** | 0.9750 | 0.9625 | 0.9750 | 0.9667 |
+| 5 | CIFAR-10 (simple) | 2× Conv3×3 (32, 64) + ReLU + pool each; Linear | 0.001 | 10 | 0.6485 | 0.6566 | 0.6485 | 0.6480 |
+| 6 | CIFAR-10 (medium) | **3×** Conv3×3 (32, 64, **128**) + ReLU + pool each; Linear | 0.001 | 10 | 0.6842 | 0.6933 | 0.6842 | 0.6841 |
+| 7 | CIFAR-10 (deep) | **5×** Conv3×3 + **BN** + ReLU, 3 pools; **Dropout**; Linear **2048→256→10** | 0.001 | 10 | 0.7663 | 0.7830 | 0.7663 | 0.7641 |
+
+## Experimental procedure (by dataset)
+
+Across datasets we changed only what the benchmark called for and held the rest fixed when comparing runs. On **MNIST** we used a two-block 3×3 CNN with batch 128 as a baseline, then switched to **5×5** convolutions with the same channel layout and **batch 64** to widen the receptive field and alter gradient noise while keeping learning rate, optimizer, and epochs the same. On **ORL** we started with a single conv block, then moved to a **second block**, **dropout** before the linear layer, and **more epochs** so added capacity and memorization risk were balanced on a small face dataset while leaving kernel and pooling choices comparable to the shallow run. On **CIFAR-10** we ran a short ablation chain, a **two-block** floor, a **third** conv stage for richer features, then a **deep** stack with **batch normalization**, **dropout**, and a **two-layer** classifier head under the same epoch budget so later gains track architecture rather than simply training longer.
+
 ## MNIST - Training Run 1
 
 Run context:
