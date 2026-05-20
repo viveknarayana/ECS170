@@ -12,8 +12,3 @@ class Method_RNN_LSTM(Method_RNN):
         self.embedding = nn.Embedding(self.vocab_size, self.embedding_dim, padding_idx=self.pad_index)
         self.recurrent = nn.LSTM(self.embedding_dim, self.hidden_dim, batch_first=True)
         self.classifier = nn.Linear(self.hidden_dim, num_classes)
-
-    def _last_hidden(self, hidden):
-        # LSTM returns (h_n, c_n); we only want h_n's top layer
-        h_n, _ = hidden
-        return h_n[-1]

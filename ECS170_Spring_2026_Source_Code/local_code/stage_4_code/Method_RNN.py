@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 class Method_RNN(method, nn.Module):
     data = None
-    max_epoch = 5
+    max_epoch = 10
     learning_rate = 1e-3
     batch_size = 64
     embedding_dim = 128
@@ -37,14 +37,16 @@ class Method_RNN(method, nn.Module):
         self.recurrent = nn.RNN(self.embedding_dim, self.hidden_dim, batch_first=True)
         self.classifier = nn.Linear(self.hidden_dim, num_classes)
 
-    def _last_hidden(self, hidden):
-        # vanilla RNN hidden shape is (num_layers, batch, hidden); take the top layer
-        return hidden[-1]
-
     def forward(self, x):
         embedded = self.embedding(x)
-        _, hidden = self.recurrent(embedded)
-        return self.classifier(self._last_hidden(hidden))
+        # Mean-pool the per-timestep outputs over non-pad positions instead of
+        # taking the final hidden state. Reviews are post-padded to 200 tokens,
+        # so the "last" hidden state is actually computed after a long run of
+        # zeros and washes out the real signal -- pooling fixes that.
+        output, _ = self.recurrent(embedded)
+        mask = (x != self.pad_index).float().unsqueeze(-1)
+        pooled = (output * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1.0)
+        return self.classifier(pooled)
 
     def _to_tensor(self, X, y=None):
         X_tensor = torch.LongTensor(np.asarray(X, dtype=np.int64))
