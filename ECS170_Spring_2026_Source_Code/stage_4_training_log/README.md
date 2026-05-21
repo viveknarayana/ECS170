@@ -16,10 +16,12 @@ For classification, Precision/Recall/F1 are **macro** averages on the 25k test s
 | 6 | Jokes | Vanilla RNN | n/a (next-token) | 0.001 | 30 | n/a | n/a | n/a | n/a | 1.673 |
 | 7 | Jokes | LSTM | n/a (next-token) | 0.001 | 30 | n/a | n/a | n/a | n/a | 2.391 |
 | 8 | Jokes | GRU | n/a (next-token) | 0.001 | 30 | n/a | n/a | n/a | n/a | 1.468 |
+| 9 | IMDb | LSTM | **mean non-PAD, BiLSTM** | 0.001 | **12** | 0.8456 | 0.8473 | 0.8456 | 0.8455 | 0.0725 |
+| 10 | IMDb | LSTM | **attention over non-PAD, BiLSTM** | 0.001 | 12 | **0.8499** | **0.8505** | **0.8499** | **0.8499** | 0.0518 |
 
 ## Experimental procedure (by subtask)
 
-On **IMDb classification** the assignment-required swap is the recurrent cell (vanilla RNN → LSTM → GRU). We held everything else fixed across cells: top-10,000 vocab, sequence length 200 with post-padding, `Embedding(10000, 128)`, hidden size 128, 1 layer, Adam at lr=1e-3, batch 64, CrossEntropyLoss. Runs 1 and 2 read the final hidden state of the recurrent layer as the classifier input; because sequences are post-padded, that state is computed after the long `<PAD>` tail rather than after the review content, and both runs sat at chance (~50%). Runs 3 and 4 changed the pooling step in `forward()` to mean across non-PAD positions and bumped epochs from 5 to 10; both cells then reached 83% test accuracy on the same architecture.
+On **IMDb classification** the assignment-required swap is the recurrent cell (vanilla RNN → LSTM → GRU). We held everything else fixed across cells: top-10,000 vocab, sequence length 200 with post-padding, `Embedding(10000, 128)`, hidden size 128, 1 layer, Adam at lr=1e-3, batch 64, CrossEntropyLoss. Runs 1 and 2 read the final hidden state of the recurrent layer as the classifier input; because sequences are post-padded, that state is computed after the long `<PAD>` tail rather than after the review content, and both runs sat at chance (~50%). Runs 3–5 changed the pooling step in `forward()` to mean across non-PAD positions and bumped epochs from 5 to 10; test accuracy jumped to about 83% on the vanilla RNN. With that pooling fixed, we swapped only the recurrent cell (RNN, LSTM, GRU) while keeping embedding size 128, hidden size 128, batch 64, and learning rate 0.001; all three cells scored within about 0.5% on the same test split. **Run 9** added **bidirectional** LSTM, **embedding size 180**, **dropout 0.3**, **weight decay 1e-4**, and **12 epochs** with mean pooling (**84.56%** test). **Run 10** kept that setup but replaced mean pooling with **masked attention pooling** over non-PAD timesteps, reaching **84.99%** test accuracy (**0.84992** raw) — our best IMDb result and **0.008 percentage points** below the stated 85% bar.
 
 On **joke generation** the model is `Embedding(4732, 128) → cell (256 hidden, 1 layer) → Linear(256, 4732)`. Training is per-position next-token prediction with teacher forcing: each joke is wrapped with `<BOS>`/`<EOS>`, padded to length 40, and supplies `input = tokens[:-1]`, `target = tokens[1:]`. Loss is CrossEntropy at every position with `ignore_index=PAD_ID`. Gradient norm is clipped at 5.0 as insurance against the loss spikes vanilla RNNs can produce on long sequences. At inference time we greedy-decode from the 3 seed words until `<EOS>` or 30 generated tokens. Runs 5, 6, 7 are the three cells in the same configuration.
 
@@ -285,6 +287,134 @@ Comparison across all post-fix IMDb cells (Runs 3-5, same pooling and hyperparam
 - Run 5 (GRU):         82.78% test acc, final train loss 0.011
 
 Test accuracy across the three cells falls inside a 0.5-point band. With mean-pooling providing parallel gradient paths through every non-PAD position, the gated cells' long-sequence advantage does not materialize at sequence length 200 / hidden size 128. The bottleneck on this configuration is generalization, not gradient flow — adding capacity (LSTM, GRU) lowers training loss further but does not move test accuracy. A meaningful gap between cells would likely require longer sequences, larger hidden size, or regularization (dropout) — none of which were varied here.
+
+## IMDb - Training Run 9 (LSTM, BiLSTM + regularization, embed 180)
+
+Run context:
+- Dataset: `IMDb`
+- Cell: `nn.LSTM` (1 layer, hidden 128, **bidirectional=True**)
+- Pooling: mean over non-PAD timesteps
+- **Embedding dim: 180** (vs 128 in Runs 3–5)
+- **Dropout: 0.3** after pooling
+- **Weight decay: 1e-4** (Adam)
+- Epochs: `12`
+- Learning rate: `0.001`
+- Batch size: `64`
+- Device: CPU
+
+Exact model changes from Run 4:
+- unidirectional → **bidirectional** LSTM (`classifier` input `hidden_dim * 2`)
+- **embedding_dim 128 → 180**
+- **dropout 0.3** on pooled features
+- **weight_decay 1e-4**
+- epochs **10 → 12**
+- unchanged: mean non-PAD pooling, vocab 10k, sequence length 200, hidden 128, batch size, learning rate
+
+Model architecture used in this run:
+1. `Embedding(10000, 180, padding_idx=0)`
+2. `LSTM(180, 128, batch_first=True, bidirectional=True)`
+3. mean of `output` over non-PAD positions
+4. `Dropout(0.3)`
+5. `Linear(256, 2)`
+
+Observed training progress:
+- Epoch 0: train accuracy `0.83076`, loss `0.4721860939693451`
+- Epoch 1: train accuracy `0.89268`, loss `0.340502436876297`
+- Epoch 2: train accuracy `0.91244`, loss `0.28533978717803954`
+- Epoch 3: train accuracy `0.9332`, loss `0.25625092436790464`
+- Epoch 4: train accuracy `0.94696`, loss `0.21812300235748291`
+- Epoch 5: train accuracy `0.961`, loss `0.18611047837257386`
+- Epoch 6: train accuracy `0.97164`, loss `0.15753731080532074`
+- Epoch 7: train accuracy `0.95772`, loss `0.1321261991596222`
+- Epoch 8: train accuracy `0.9806`, loss `0.12090864715576172`
+- Epoch 9: train accuracy `0.98396`, loss `0.0981909324836731`
+- Epoch 10: train accuracy `0.987`, loss `0.08293312027215957`
+- Epoch 11: train accuracy `0.97696`, loss `0.07251750641942024`
+
+Saved learning curve:
+- `../result/stage_4_result/plots/train_loss_vs_epoch_RNN_IMDB_LSTM_ep12_lr0.001_20260520_234805.png`
+
+Evaluation results (test set):
+- Accuracy: `0.84564`
+- F1 macro: `0.8454600885913598`
+- F1 micro: `0.84564`
+- F1 weighted: `0.8454600885913597`
+- Precision macro: `0.8472570711698999`
+- Precision micro: `0.84564`
+- Precision weighted: `0.8472570711698999`
+- Recall macro: `0.84564`
+- Recall micro: `0.84564`
+- Recall weighted: `0.84564`
+
+Notes:
+- Best IMDb test score until Run 10; superseded by attention-pooling run at **84.99%**.
+- **+1.2 points** over Run 4 (unidirectional LSTM, embed 128).
+- Still **0.44 percentage points** below 85% on its own.
+
+Comparison vs Runs 3–5 (shared mean-pool baseline, embed 128):
+- Run 3 (vanilla RNN): 83.22% test acc
+- Run 4 (LSTM): 82.96% test acc
+- Run 5 (GRU): 82.78% test acc
+- Run 9 (LSTM tuned, mean pool): **84.56%** test acc
+
+## IMDb - Training Run 10 (LSTM, BiLSTM + attention pooling, embed 180)
+
+Run context:
+- Dataset: `IMDb`
+- Cell: `nn.LSTM` (1 layer, hidden 128, **bidirectional=True**)
+- Pooling: **masked attention** over non-PAD timesteps (`Linear(256, 1)` + softmax)
+- **Embedding dim: 180**
+- **Dropout: 0.3** after pooling
+- **Weight decay: 1e-4** (Adam)
+- Epochs: `12`
+- Learning rate: `0.001`
+- Batch size: `64`
+- Device: CPU
+
+Exact model changes from Run 9:
+- mean pool → **attention pool** over non-PAD positions
+- unchanged: bidirectional LSTM, embedding 180, dropout, weight decay, epochs, hidden 128, batch size, learning rate
+
+Model architecture used in this run:
+1. `Embedding(10000, 180, padding_idx=0)`
+2. `LSTM(180, 128, batch_first=True, bidirectional=True)`
+3. `attention = Linear(256, 1)`; softmax weights over non-PAD outputs
+4. `Dropout(0.3)`
+5. `Linear(256, 2)`
+
+Observed training progress:
+- Epoch 0: train accuracy `0.86172`, loss `0.4578816579055786`
+- Epoch 1: train accuracy `0.89544`, loss `0.3280862643623352`
+- Epoch 2: train accuracy `0.91952`, loss `0.2756608881473541`
+- Epoch 3: train accuracy `0.93936`, loss `0.25000179077625273`
+- Epoch 4: train accuracy `0.95436`, loss `0.20161202676296233`
+- Epoch 5: train accuracy `0.96572`, loss `0.16869770679473878`
+- Epoch 6: train accuracy `0.97872`, loss `0.1293191934633255`
+- Epoch 7: train accuracy `0.98108`, loss `0.1009162006855011`
+- Epoch 8: train accuracy `0.98828`, loss `0.07784723918437958`
+- Epoch 9: train accuracy `0.98288`, loss `0.06250999860405922`
+- Epoch 10: train accuracy `0.9914`, loss `0.05381414687156677`
+- Epoch 11: train accuracy `0.99228`, loss `0.05177496106982231`
+
+Saved learning curve:
+- `../result/stage_4_result/plots/train_loss_vs_epoch_RNN_IMDB_LSTM_ep12_lr0.001_20260521_023628.png`
+
+Evaluation results (test set):
+- Accuracy: `0.84992`
+- F1 macro: `0.8498613772336874`
+- F1 micro: `0.84992`
+- F1 weighted: `0.8498613772336874`
+- Precision macro: `0.8504673705936012`
+- Precision micro: `0.84992`
+- Precision weighted: `0.8504673705936011`
+- Recall macro: `0.84992`
+- Recall micro: `0.84992`
+- Recall weighted: `0.84992`
+
+Notes:
+- **Best IMDb test score in this log** (+0.43 points vs Run 9 mean pool at 84.56%).
+- Raw accuracy **0.84992** rounds to **85.0%** at one decimal but is **8e-5** below 0.85 as a float threshold.
+- Attention pooling was the only architectural change vs Run 9.
 
 ## Jokes - Training Run 1 (vanilla RNN)
 

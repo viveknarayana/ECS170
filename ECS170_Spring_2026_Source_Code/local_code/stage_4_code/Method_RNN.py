@@ -18,6 +18,8 @@ class Method_RNN(method, nn.Module):
     batch_size = 64
     embedding_dim = 128
     hidden_dim = 128
+    dropout_p = 0.0
+    weight_decay = 0.0
     training_curve_folder_path = '../../result/stage_4_result/plots/'
     training_curve_file_name_prefix = 'train_loss_vs_epoch'
 
@@ -35,6 +37,7 @@ class Method_RNN(method, nn.Module):
     def _build_network(self, num_classes):
         self.embedding = nn.Embedding(self.vocab_size, self.embedding_dim, padding_idx=self.pad_index)
         self.recurrent = nn.RNN(self.embedding_dim, self.hidden_dim, batch_first=True)
+        self.dropout = nn.Dropout(self.dropout_p) if self.dropout_p > 0 else nn.Identity()
         self.classifier = nn.Linear(self.hidden_dim, num_classes)
 
     def forward(self, x):
@@ -46,7 +49,7 @@ class Method_RNN(method, nn.Module):
         output, _ = self.recurrent(embedded)
         mask = (x != self.pad_index).float().unsqueeze(-1)
         pooled = (output * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1.0)
-        return self.classifier(pooled)
+        return self.classifier(self.dropout(pooled))
 
     def _to_tensor(self, X, y=None):
         X_tensor = torch.LongTensor(np.asarray(X, dtype=np.int64))
@@ -55,12 +58,15 @@ class Method_RNN(method, nn.Module):
         return X_tensor, torch.LongTensor(np.asarray(y, dtype=np.int64))
 
     def train(self, X, y):
+        nn.Module.train(self, True)
         X_tensor, y_tensor = self._to_tensor(X, y)
         num_classes = int(y_tensor.max().item()) + 1
         if self.embedding is None:
             self._build_network(num_classes)
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
+        )
         loss_function = nn.CrossEntropyLoss()
         accuracy_evaluator = Evaluate_Accuracy('training evaluator', '')
 
@@ -87,6 +93,7 @@ class Method_RNN(method, nn.Module):
             loss_history.append(epoch_loss)
 
             # batched full-set pass to avoid OOM on 25k x 200 tokens
+            nn.Module.train(self, False)  # not self.eval(): train(X,y) shadows nn.Module.train
             with torch.no_grad():
                 preds = []
                 for batch_X, _ in DataLoader(TensorDataset(X_tensor, y_tensor), batch_size=256):
@@ -94,9 +101,11 @@ class Method_RNN(method, nn.Module):
                 all_pred = torch.cat(preds)
             accuracy_evaluator.data = {'true_y': y_tensor, 'pred_y': all_pred}
             print('Epoch:', epoch, 'Accuracy:', accuracy_evaluator.evaluate(), 'Loss:', epoch_loss)
+            nn.Module.train(self, True)
         return loss_history
 
     def test(self, X):
+        nn.Module.train(self, False)
         X_tensor = self._to_tensor(X)
         with torch.no_grad():
             preds = []
