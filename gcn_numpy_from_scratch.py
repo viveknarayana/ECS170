@@ -7,7 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 
-CACHE = "/sessions/quirky-upbeat-fermi/mnt/outputs/cache"
+CACHE = os.path.join(os.path.dirname(__file__), "cache")
 
 def load_cached(name):
     z = np.load(os.path.join(CACHE, name + ".npz"), allow_pickle=True)
